@@ -1,0 +1,174 @@
+---
+dsl_version: 1.0.0
+module: bigtop/spark
+keywords: spark, bigdata, bigtop
+description: Bigtop module for Spark
+license: Apache 2.0
+version: 0.1.7
+
+default_location: dtkn://dtknet.servicecatalog.it
+modules:
+  dtk/dtk_util:
+  maestrodev/wget:
+    version: 1.7.2
+
+components:
+  spark::cluster:
+    attributes:  
+      version:
+        type: string
+        required: true
+        default: latest
+      install_mode:
+        type: string
+        required: true
+        default: package
+    dependencies:
+    - bigtop_multiservice
+    link_defs:
+      bigtop_multiservice:
+        attribute_mappings:
+        - aggregate_input[spark_version] <- $version
+        - aggregate_input[spark_install_mode] <- $install_mode
+
+  spark::master:
+    attributes:
+      master_host:
+        type: string
+        dynamic: true
+      spark_version:
+        type: string
+        dynamic: true
+      master_port:
+        type: port
+        default: 7077
+        required: true
+      master_ui_port:
+        type: port
+        default: 8080
+        required: true
+      master_local_ipv4:
+        type: string
+        dynamic: true
+        hidden: true
+      eventlog_enabled:
+        type: boolean
+        default: true
+        required: true
+      cassandra_host:
+        type: string
+      eventlog_dir:
+        type: string
+        default: /user/local/spark
+      history_server_enabled:
+        type: boolean
+        default: true
+      hdfs_namenode_host:
+        type: string
+      hdfs_working_dirs:
+        type: json
+        default:
+        - path: /user/local/spark/
+          mode: '1777'
+          owner: spark
+        - path: /var/log/spark/apps
+          mode: '1777'
+          owner: spark
+          group: spark
+    link_defs:
+      hadoop::hdfs_directories:
+        attribute_mappings:
+        - daemon_dirs <- $hdfs_working_dirs
+        - $node.host_address -> hdfs_namenode_host
+      cassandra::cluster:
+        attribute_mappings:
+        - $contact_point -> cassandra_host
+
+    actions:
+      create:
+        puppet_class: spark::master
+      test_port_up:
+        commands:
+        - RUN echo "spark master port={{master_port}}"
+        - RUN netstat -nltp | grep {{master_port}}
+
+  spark::worker:
+    dependencies:
+    - spark::common
+    actions:
+      create:
+        puppet_class: spark::worker
+
+  spark::client:
+    attributes:
+      spark_home:
+        type: string
+        dynamic: true
+      spark_examples_jar:
+        type: string
+        dynamic: true
+      user:
+        type: string
+        decsription: Linux user that spark job is submitted under
+        dynamic: true
+    # TODO: dependencies:
+    # needs spark::common or spark::master 
+    actions:
+      create:
+        puppet_class: spark::client
+      smoke_test:
+        commands:
+        - RUN su {{user}} -c "{{spark_home}}/bin/spark-submit --class org.apache.spark.examples.SparkPi {{spark_home}}/lib/{{spark_examples_jar}}"
+
+  spark::common:
+    attributes:
+      worker_port:
+        type: port
+        default: 8081
+      master_host:
+        type: string
+        required: true
+      master_port:
+        type: port
+        required: true
+      master_local_ipv4:
+        type: string
+        hidden: true
+      eventlog_enabled:
+        type: boolean
+        required: true
+        hidden: true
+      eventlog_dir:
+        type: string
+        required: true
+        hidden: true
+      cassandra_host:
+        type: string
+    dependencies:
+    - bigtop_base
+    - spark::master
+    link_defs:
+      spark::master:
+        attribute_mappings:
+        - $master_host       -> master_host
+        - $master_port       -> master_port
+        - $master_local_ipv4 -> master_local_ipv4
+        - $eventlog_enabled  -> eventlog_enabled
+        - $eventlog_dir      -> eventlog_dir      
+      cassandra::cluster:
+        attribute_mappings:
+        - $contact_point -> cassandra_host
+
+    actions:
+      create:
+        puppet_class: spark::common
+      test_port_up:
+        commands:
+        - RUN echo "spark worker port={{worker_port}}"
+        - RUN netstat -nltp | grep {{worker_port}}
+
+
+
+
+
+
