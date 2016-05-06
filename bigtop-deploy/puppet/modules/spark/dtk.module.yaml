@@ -6,11 +6,10 @@ description: Bigtop module for Spark
 license: Apache 2.0
 version: 0.1.7
 
-default_location: dtkn://dtknet.servicecatalog.it
 modules:
-  dtk/dtk_util:
-  maestrodev/wget:
-    version: 1.7.2
+- dtk/dtk_util
+-  maestrodev/wget:
+     version: 1.7.2
 
 components:
   spark::cluster:
@@ -166,7 +165,6 @@ components:
         commands:
         - RUN echo "spark worker port={{worker_port}}"
         - RUN netstat -nltp | grep {{worker_port}}
-
 
 
 

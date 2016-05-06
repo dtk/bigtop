@@ -6,12 +6,11 @@ description: Bigtop module for HDFS and Yarn
 license: Apache 2.0
 version: 0.1.6
 
-default_location: dtkn://dtknet.servicecatalog.it
 modules:
-  bigtop/bigtop_toolchain:
+- bigtop/bigtop_toolchain:
     version: 0.1.0
-  bigtop/kerberos:
-  puppetlabs/stdlib:
+- bigtop/kerberos
+- puppetlabs/stdlib:
    version: 4.3.1
 components:
   hadoop::cluster:
